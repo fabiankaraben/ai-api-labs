@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
-import { handleOpenAIChoice } from './openai.js';
-import { listGeminiModels, chatWithGemini } from './gemini.js';
-import { handleGrokChoice } from './grok.js';
+import { listOpenAIModels } from './openai.js';
+import { listGeminiModels } from './gemini.js';
+import { listGrokModels } from './grok.js';
 
 dotenv.config();
 
@@ -73,24 +73,25 @@ async function main() {
 
   switch (provider.toLowerCase()) {
     case 'openai':
-      await handleOpenAIChoice(operation.toLowerCase(), { model, inputText, imageFile });
+      if (operation.toLowerCase() === 'list-models') {
+        await listOpenAIModels();
+      } else {
+        console.error(`Unsupported OpenAI operation: ${operation}`);
+      }
       break;
     case 'gemini':
       if (operation.toLowerCase() === 'list-models') {
-        const models = await listGeminiModels();
-        console.log('Available Gemini Models:', models);
-      } else if (operation.toLowerCase() === 'chat') {
-        if (model) {
-          await chatWithGemini(model, main);
-        } else {
-          console.error('Error: Model not specified for Gemini chat. Use -m or --model option.');
-        }
+        await listGeminiModels();       
       } else {
         console.error(`Unsupported Gemini operation: ${operation}`);
       }
       break;
     case 'grok':
-      await handleGrokChoice(operation.toLowerCase(), { model, inputText });
+      if (operation.toLowerCase() === 'list-models') {
+        await listGrokModels();
+      } else {
+        console.error(`Unsupported Grok operation: ${operation}`);
+      }
       break;
     default:
       console.error(`Unknown API provider: ${provider}`);
