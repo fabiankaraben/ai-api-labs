@@ -1,0 +1,36 @@
+{
+  "name": "ai-api-labs",
+  "version": "1.0.0",
+  "description": "Interactive CLI tool for testing OpenAI, Gemini, and Grok APIs",
+  "main": "dist/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "start": "NODE_OPTIONS=--no-warnings=DEP0040 node dist/index.js",
+    "dev": "NODE_OPTIONS=--no-warnings=DEP0040 ts-node src/index.ts"
+  },
+  "keywords": [
+    "cli",
+    "ai",
+    "openai",
+    "gemini",
+    "grok",
+    "api",
+    "typescript"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "inquirer": "^8.2.4",
+    "openai": "^4.47.1",
+    "@google/genai": "^1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "ts-node": "^10.9.2",
+    "@types/node": "^20.12.12",
+    "@types/inquirer": "^8.2.6"
+  }
+}
