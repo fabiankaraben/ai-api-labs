@@ -1,88 +1,101 @@
 import dotenv from 'dotenv';
-import inquirer from 'inquirer';
 import { handleOpenAIChoice } from './openai.js';
-import { handleGeminiChoice } from './gemini.js';
+import { listGeminiModels, chatWithGemini } from './gemini.js';
 import { handleGrokChoice } from './grok.js';
 
 dotenv.config();
 
-interface ApiProviderChoice {
-  provider: 'OpenAI' | 'Gemini' | 'Grok' | 'Exit';
+// Parse command-line arguments
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const options: { [key: string]: string | boolean } = {};
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg.startsWith('-')) {
+      const key = arg.replace(/^-+/, '');
+      const nextArg = i + 1 < args.length ? args[i + 1] : '';
+      options[key] = nextArg && !nextArg.startsWith('-') ? nextArg : true;
+    }
+  }
+
+  return options;
+}
+
+// Display help information
+function showHelp() {
+  console.log(`
+Usage: node dist/index.js [options]
+
+Options:
+  -h, --help          Show this help message
+  -p, --provider      API provider (openai, gemini, grok)
+  -o, --operation     Operation (chat, image-gen)
+  -m, --model         Model name (if applicable)
+  -i, --input         Input text or image description
+  -f, --file          Path to image file (for image input with chat)
+
+Examples:
+  node dist/index.js -p openai -o chat -m gpt-4o -i "Hello, how are you?"
+  node dist/index.js -p gemini -o image-gen -i "A futuristic cityscape"
+  `);
+  process.exit(0);
 }
 
 async function main() {
-  console.clear();
-  if (!process.env.OPENAI_API_KEY && !process.env.GEMINI_API_KEY && !process.env.GROK_API_KEY) {
-    console.log('No API keys found in .env file. Please add at least one API key to proceed.');
+  if (process.argv.length === 2) {
+    showHelp();
     return;
   }
 
-  console.log('Interactive AI API Tester');
-  console.log('===========================');
-
-  const openaiApiKey = process.env.OPENAI_API_KEY;
-  const geminiApiKey = process.env.GEMINI_API_KEY;
-  const grokApiKey = process.env.GROK_API_KEY;
-
-  if (!openaiApiKey) {
-    console.warn('OpenAI API Key not found in .env file. OpenAI functionality will be unavailable.');
+  const options = parseArgs();
+  if (options['h'] || options['help']) {
+    showHelp();
   }
-  if (!geminiApiKey) {
-    console.warn('Gemini API Key not found in .env file. Gemini functionality will be unavailable.');
-  }
-  if (!grokApiKey) {
-    console.warn('Grok API Key not found in .env file. Grok functionality will be unavailable.');
-  }
-  console.log('');
 
-  const { provider } = await inquirer.prompt<ApiProviderChoice>([
-    {
-      type: 'list',
-      name: 'provider',
-      message: 'Which AI API provider would you like to test?',
-      choices: [
-        { name: 'OpenAI', value: 'OpenAI' },
-        { name: 'Gemini (Google AI)', value: 'Gemini' },
-        { name: 'Grok (xAI)', value: 'Grok' },
-        new inquirer.Separator(),
-        { name: 'Exit', value: 'Exit' },
-      ],
-    },
-  ]);
+  const provider = typeof options['p'] === 'string' ? options['p'] : (typeof options['provider'] === 'string' ? options['provider'] : '');
+  const operation = typeof options['o'] === 'string' ? options['o'] : (typeof options['operation'] === 'string' ? options['operation'] : '');
+  const model = typeof options['m'] === 'string' ? options['m'] : (typeof options['model'] === 'string' ? options['model'] : '');
+  const inputText = typeof options['i'] === 'string' ? options['i'] : (typeof options['input'] === 'string' ? options['input'] : '');
+  const imageFile = typeof options['f'] === 'string' ? options['f'] : (typeof options['file'] === 'string' ? options['file'] : '');
 
-  if (provider === 'Exit') {
-    console.log('Exiting AI API Tester. Goodbye!');
+  if (!provider) {
+    console.error('Error: API provider not specified. Use -p or --provider option.');
+    showHelp();
     return;
   }
 
-  console.log(`You selected: ${provider}`);
+  if (!operation) {
+    console.error(`Error: Operation not specified for ${provider}. Use -o or --operation option.`);
+    showHelp();
+    return;
+  }
 
-  switch (provider) {
-    case 'OpenAI':
-      if (!openaiApiKey) {
-        console.error('OpenAI API Key is missing. Please add it to your .env file.');
-        return main(); // Return to main menu if key is missing
-      }
-      await handleOpenAIChoice(openaiApiKey, main); // Pass main as callback
+  switch (provider.toLowerCase()) {
+    case 'openai':
+      await handleOpenAIChoice(operation.toLowerCase(), { model, inputText, imageFile });
       break;
-    case 'Gemini':
-      if (!geminiApiKey) {
-        console.error('Gemini API Key is missing. Please add it to your .env file.');
-        return main(); // Return to main menu if key is missing
+    case 'gemini':
+      if (operation.toLowerCase() === 'list-models') {
+        const models = await listGeminiModels();
+        console.log('Available Gemini Models:', models);
+      } else if (operation.toLowerCase() === 'chat') {
+        if (model) {
+          await chatWithGemini(model, main);
+        } else {
+          console.error('Error: Model not specified for Gemini chat. Use -m or --model option.');
+        }
+      } else {
+        console.error(`Unsupported Gemini operation: ${operation}`);
       }
-      await handleGeminiChoice(geminiApiKey, main); // Pass main as callback
       break;
-    case 'Grok':
-      if (!grokApiKey) {
-        console.error('Grok API Key is missing. Please add it to your .env file.');
-        return main(); // Return to main menu if key is missing
-      }
-      await handleGrokChoice(grokApiKey, main); // Pass main as callback
+    case 'grok':
+      await handleGrokChoice(operation.toLowerCase(), { model, inputText });
       break;
+    default:
+      console.error(`Unknown API provider: ${provider}`);
+      console.error('Supported providers: openai, gemini, grok');
   }
 }
 
-main().catch(error => {
-  console.error('An error occurred:', error);
-  process.exit(1);
-});
+main().catch(err => console.error('Fatal error:', err));
