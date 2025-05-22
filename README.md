@@ -22,8 +22,8 @@ Options:
 # List available models
 npm run dev -- -p grok -o list-models
 
-# Chat with a model
-npm run dev -- -p grok -o chat -m xlarge -i "Hello, how are you?"
+# Chat with a model (using default model: grok-3-mini)
+npm run dev -- -p grok -o chat -i "Tell me a joke about AI."
 ```
 
 ## OpenAI examples in dev

@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
-import { listOpenAIModels } from './openai.js';
-import { listGeminiModels } from './gemini.js';
-import { listGrokModels } from './grok.js';
+import { listOpenAIModels, chatWithOpenAI } from './openai.js';
+import { listGeminiModels, chatWithGemini } from './gemini.js';
+import { listGrokModels, chatWithGrok } from './grok.js';
 
 dotenv.config();
 
@@ -25,12 +25,15 @@ function parseArgs() {
 // Display help information
 function showHelp() {
   console.log(`
-Usage: node dist/index.js [options]
+Usage: npm start -- [options]  OR  node dist/index.js [options]
 
 Options:
   -h, --help          Show this help message
   -p, --provider      API provider (openai, gemini, grok)
-  -o, --operation     Operation (chat, image-gen)
+  -o, --operation     Operation (list-models, chat, image-gen)
+                      For OpenAI: list-models, chat
+                      For Gemini: list-models, chat
+                      For Grok: list-models, chat
   -m, --model         Model name (if applicable)
   -i, --input         Input text or image description
   -f, --file          Path to image file (for image input with chat)
@@ -38,6 +41,12 @@ Options:
 Examples:
   node dist/index.js -p openai -o chat -m gpt-4o -i "Hello, how are you?"
   node dist/index.js -p gemini -o image-gen -i "A futuristic cityscape"
+  npm start -- -p grok -o chat -i "Tell me a joke about AI."
+  npm start -- -p grok -o chat -m Llama-2-70b-chat-hf -i "What is the capital of France?"
+  npm start -- -p openai -o chat -i "What is the weather like in SF?"
+  npm start -- -p openai -o chat -m gpt-4o -i "Write a poem about coding."
+  npm start -- -p gemini -o chat -i "What are some fun facts about the ocean?"
+  npm start -- -p gemini -o chat -m gemini-1.5-pro-latest -i "Plan a 3-day trip to Tokyo."
   `);
   process.exit(0);
 }
@@ -75,13 +84,27 @@ async function main() {
     case 'openai':
       if (operation.toLowerCase() === 'list-models') {
         await listOpenAIModels();
+      } else if (operation.toLowerCase() === 'chat') {
+        if (!inputText) {
+          console.error('Error: Input text not provided for OpenAI chat. Use -i or --input option.');
+          showHelp();
+          return;
+        }
+        await chatWithOpenAI(inputText, model || undefined);
       } else {
         console.error(`Unsupported OpenAI operation: ${operation}`);
       }
       break;
     case 'gemini':
       if (operation.toLowerCase() === 'list-models') {
-        await listGeminiModels();       
+        await listGeminiModels();
+      } else if (operation.toLowerCase() === 'chat') {
+        if (!inputText) {
+          console.error('Error: Input text not provided for Gemini chat. Use -i or --input option.');
+          showHelp();
+          return;
+        }
+        await chatWithGemini(inputText, model || undefined);
       } else {
         console.error(`Unsupported Gemini operation: ${operation}`);
       }
@@ -89,6 +112,13 @@ async function main() {
     case 'grok':
       if (operation.toLowerCase() === 'list-models') {
         await listGrokModels();
+      } else if (operation.toLowerCase() === 'chat') {
+        if (!inputText) {
+          console.error('Error: Input text not provided for Grok chat. Use -i or --input option.');
+          showHelp();
+          return;
+        }
+        await chatWithGrok(inputText, model || undefined);
       } else {
         console.error(`Unsupported Grok operation: ${operation}`);
       }
